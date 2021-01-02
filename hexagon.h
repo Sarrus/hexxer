@@ -25,5 +25,6 @@ struct hexagon{
 #define HEXAGON struct hexagon
 
 void printHexagon(HEXAGON * hexagon);
+void longToHexagon(unsigned long number, HEXAGON * hexagon, bool lockLeftRed);
 
 #endif //HEXXER_HEXAGON_H

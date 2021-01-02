@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include "hexagon.h"
 
 char colourToChar(COLOUR colour)
@@ -102,5 +103,25 @@ void printHexagon(HEXAGON * hexagon)
             default:
                 printf(hexMap[i]);
         }
+    }
+}
+
+void longToHexagon(unsigned long number, HEXAGON * hexagon, bool lockLeftRed)
+{
+    for(int i = 0; i < 3; i++)
+    {
+        hexagon->row0[i] = (number >> (i * 2)) % 4;
+        hexagon->row4[i] = (number >> ((i + 16) * 2)) % 4;
+    }
+
+    for(int i = 0; i < 4; i++)
+    {
+        hexagon->row1[i] = (number >> ((i + 3) * 2)) % 4;
+        hexagon->row3[i] = (number >> ((i + 12) * 2)) % 4;
+    }
+
+    for(int i = 0; i < 5; i++)
+    {
+        hexagon->row2[i] = (number >> ((i + 7) * 2)) % 4;
     }
 }

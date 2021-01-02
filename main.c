@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include "hexagon.h"
 
 int main()
@@ -18,7 +19,17 @@ int main()
         printMe.row2[i] = BLUE;
     }
 
-    printHexagon(&printMe);
+    unsigned long i = 0;
 
-    return EXIT_SUCCESS;
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "EndlessLoop"
+    while(1)
+    {
+        printf("%lu\r\n", i);
+        longToHexagon(i, &printMe, false);
+        printHexagon(&printMe);
+        getchar();
+        i++;
+    }
+#pragma clang diagnostic pop
 }
