@@ -5,6 +5,8 @@
 #ifndef HEXXER_HEXAGON_H
 #define HEXXER_HEXAGON_H
 
+#define TOTAL_HEXAGONS_WITH_LFET_RED_LOCKED 0x1000000000
+
 enum colours{
     RED,
     YELLOW,
