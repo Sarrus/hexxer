@@ -224,5 +224,68 @@ bool validateSolution(unsigned long solution)
         }
     }
 
+    for(char i = 0; i < blues; i++)
+    {
+        char yellowsAroundBlue = 0;
+
+        for(char j = 0; j < cellRelationships[bluesAt[i]].countOfRelationships; j++)
+        {
+            for(char k = 0; k < yellows; k++)
+            {
+                if(yellowsAt[k] == cellRelationships[bluesAt[i]].relatedCells[j])
+                {
+                    yellowsAroundBlue++;
+                }
+            }
+        }
+
+        if(yellowsAroundBlue != 2)
+        {
+            // Blue not surrounded by two yellows found
+            return false;
+        }
+    }
+
+    for(char i = 0; i < yellows; i++)
+    {
+        char coloursFoundSurrounding = 0b000; // 0b001 = red, 0b010 = green, 0b100 = blue
+
+        for(char j = 0; j < cellRelationships[yellowsAt[i]].countOfRelationships; j++)
+        {
+            for(char k = 0; k < reds; k++)
+            {
+                if(redsAt[k] == cellRelationships[yellowsAt[i]].relatedCells[j])
+                {
+                    coloursFoundSurrounding |= 0b001;
+                    k = reds;
+                }
+            }
+
+            for(char k = 0; k < greens; k++)
+            {
+                if(greensAt[k] == cellRelationships[yellowsAt[i]].relatedCells[j])
+                {
+                    coloursFoundSurrounding |= 0b010;
+                    k = greens;
+                }
+            }
+
+            for(char k = 0; k < blues; k++)
+            {
+                if(bluesAt[k] == cellRelationships[yellowsAt[i]].relatedCells[j])
+                {
+                    coloursFoundSurrounding |= 0b100;
+                    k = blues;
+                }
+            }
+        }
+
+        if(coloursFoundSurrounding != 0b111)
+        {
+            // Yellow not surrounded by at least one of every other colour found
+            return false;
+        }
+    }
+
     return true;
 }
