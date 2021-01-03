@@ -17,7 +17,7 @@ int main()
         if((clock() > CLOCKS_PER_SEC) && (lastReportAt < (clock() - CLOCKS_PER_SEC)))
         {
             printf("Current hexagon no. %lu\r\n", i);
-            printf("%f%% of all hexagons tried\r\n", (float)i / (float)TOTAL_HEXAGONS_WITH_LFET_RED_LOCKED);
+            printf("%f%% of all hexagons tried\r\n", 100 * (float)i / (float)TOTAL_HEXAGONS_WITH_LFET_RED_LOCKED);
             printHexagon(&currentHexagon);
             lastReportAt = clock();
         }
