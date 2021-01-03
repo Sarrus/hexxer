@@ -5,7 +5,9 @@
 #ifndef HEXXER_HEXAGON_H
 #define HEXXER_HEXAGON_H
 
-#define TOTAL_HEXAGONS_WITH_LFET_RED_LOCKED 0x1000000000
+#define TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED 0x1000000000
+#define TOTAL_SEGMENTS_WITH_LEFT_RED_LOCKED 18
+#define TOTAL_SEGMENTS 19
 
 enum colours{
     RED,
@@ -28,5 +30,6 @@ struct hexagon{
 
 void printHexagon(HEXAGON * hexagon);
 void longToHexagon(unsigned long number, HEXAGON * hexagon, bool lockLeftRed);
+bool validateSolution(unsigned long solution);
 
 #endif //HEXXER_HEXAGON_H

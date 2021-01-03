@@ -125,3 +125,45 @@ void longToHexagon(unsigned long number, HEXAGON * hexagon, bool lockLeftRed)
         hexagon->row2[i] = (number >> ((i + 7) * 2)) % 4;
     }
 }
+
+bool validateSolution(unsigned long solution)
+{
+    unsigned int reds = 0;
+    unsigned int yellows = 0;
+    unsigned int greens = 0;
+    unsigned int blues = 0;
+
+    for(unsigned int i = 0; i < TOTAL_SEGMENTS_WITH_LEFT_RED_LOCKED; i++)
+    {
+        switch((solution >> i * 2) % 4)
+        {
+            case RED:
+                reds++;
+                break;
+
+            case YELLOW:
+                yellows++;
+                break;
+
+            case GREEN:
+                greens++;
+                break;
+
+            case BLUE:
+                blues++;
+                break;
+        }
+    }
+
+    if(
+            (reds < 3)
+            || (yellows < 3)
+            || (greens < 3)
+            || (blues < 3)
+            )
+    {
+        return false;
+    }
+
+    return true;
+}
