@@ -153,7 +153,7 @@ void printHexagon(HEXAGON * hexagon)
     }
 }
 
-void longToHexagon(unsigned long number, HEXAGON * hexagon, bool lockLeftRed)
+void longToHexagon(HEXAGON_AS_INT number, HEXAGON * hexagon, bool lockLeftRed)
 {
     for(int i = 0; i < 3; i++)
     {
@@ -173,7 +173,7 @@ void longToHexagon(unsigned long number, HEXAGON * hexagon, bool lockLeftRed)
     }
 }
 
-bool validateSolution(unsigned long solution)
+bool validateSolution(HEXAGON_AS_INT solution)
 {
     char reds = 0;
     char yellows = 0;

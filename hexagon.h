@@ -27,9 +27,10 @@ struct hexagon{
 };
 
 #define HEXAGON struct hexagon
+#define HEXAGON_AS_INT unsigned long
 
 void printHexagon(HEXAGON * hexagon);
-void longToHexagon(unsigned long number, HEXAGON * hexagon, bool lockLeftRed);
-bool validateSolution(unsigned long solution);
+void longToHexagon(HEXAGON_AS_INT number, HEXAGON * hexagon, bool lockLeftRed);
+bool validateSolution(HEXAGON_AS_INT solution);
 
 #endif //HEXXER_HEXAGON_H
