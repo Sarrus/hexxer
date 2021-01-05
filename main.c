@@ -140,7 +140,7 @@ void solveInParallel()
 
     for(unsigned long i = 0; i < parallelJobs; i++)
     {
-        threadConfigs[i].firstHexagon = hexagonAllocation;
+        threadConfigs[i].currentHexagon = threadConfigs[i].firstHexagon = hexagonAllocation;
         hexagonAllocation += hexagonsPerSolver;
 
         if(!i)
