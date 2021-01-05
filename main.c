@@ -14,14 +14,20 @@ unsigned long parallelJobs = 0;
 struct solverThreadConfig
 {
     HEXAGON_AS_INT firstHexagon;
+    HEXAGON_AS_INT currentHexagon;
     HEXAGON_AS_INT lastHexagon;
 };
 
 #define SOLVER_THREAD_CONFIG struct solverThreadConfig
+SOLVER_THREAD_CONFIG threadConfigs[MAX_PARALLEL_JOBS];
+
+HEXAGON_AS_INT solutionsFound = 0;
+
+bool lastPrintWasProgressLine = false;
 
 void solveInSerial()
 {
-    HEXAGON_AS_INT solutionsFound = 0;
+
     HEXAGON renderedHexagon;
 
     for(HEXAGON_AS_INT i = 0; i < TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED; i++)
@@ -43,24 +49,59 @@ void solveInSerial()
     printf("Tried all possible hexagons.\r\n");
 }
 
+HEXAGON_AS_INT printParallelProgress()
+{
+    HEXAGON_AS_INT hexagonsProcessed = 0;
+    for(unsigned long i = 0; i < parallelJobs; i++)
+    {
+        hexagonsProcessed += threadConfigs[i].currentHexagon - threadConfigs[i].firstHexagon;
+    }
+
+    if(lastPrintWasProgressLine)
+    {
+        printf("%c[2K\r", 27);
+    }
+
+    printf(
+            "%lu hexagons processed so far, %f%% of total.",
+            hexagonsProcessed,
+            100 * (float)hexagonsProcessed / (float)TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED
+    );
+
+    lastPrintWasProgressLine = true;
+
+    return hexagonsProcessed;
+}
+
 void * solverThread(void * config)
 {
     SOLVER_THREAD_CONFIG * solverConfig = config;
     HEXAGON renderedHexagon;
 
-    for(HEXAGON_AS_INT i = solverConfig->firstHexagon; i < solverConfig->lastHexagon; i++)
+    for(
+            solverConfig->currentHexagon = solverConfig->firstHexagon;
+            solverConfig->currentHexagon < solverConfig->lastHexagon;
+            solverConfig->currentHexagon++
+            )
     {
-        if(validateSolution(i))
+        if(validateSolution(solverConfig->currentHexagon))
         {
-            //solutionsFound++;
-            printf("Solution found at hexagon no. %lu \r\n", i);
-            //printf("%f%% of all hexagons tried, ", 100 * (float)i / (float)TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED);
-            //printf("%lu solutions found so far.\r\n", solutionsFound);
+            solutionsFound++;
+            if(lastPrintWasProgressLine)
+            {
+                printf("%c[2K\r", 27);
+                //printf("\r\n");
+                lastPrintWasProgressLine = false;
+            }
+            printf("Solution found at hexagon no. %lu ", solverConfig->currentHexagon);
+            printf("%lu solutions found so far.\r\n", solutionsFound);
             if(printHexagons)
             {
-                longToHexagon(i, &renderedHexagon, false);
+                longToHexagon(solverConfig->currentHexagon, &renderedHexagon, false);
                 printHexagon(&renderedHexagon);
             }
+
+            printParallelProgress();
         }
     }
 
@@ -68,13 +109,34 @@ void * solverThread(void * config)
     return NULL;
 }
 
+void * monitorThread(void * config)
+{
+    while(1)
+    {
+
+
+        if(printParallelProgress() == TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED)
+        {
+            break;
+        }
+
+        sleep(1);
+    }
+
+    return NULL;
+}
+
 void solveInParallel()
 {
-    pthread_t solverThreads[MAX_PARALLEL_JOBS];
-    SOLVER_THREAD_CONFIG threadConfigs[MAX_PARALLEL_JOBS];
+    pthread_t solverThreadIDs[MAX_PARALLEL_JOBS];
+
+
+    pthread_t monitorThreadID;
 
     HEXAGON_AS_INT hexagonsPerSolver = TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED / parallelJobs;
     HEXAGON_AS_INT hexagonAllocation = 0;
+
+    setbuf(stdout, NULL);
 
     for(unsigned long i = 0; i < parallelJobs; i++)
     {
@@ -88,17 +150,25 @@ void solveInParallel()
 
         threadConfigs[i].lastHexagon = hexagonAllocation;
 
-        if(pthread_create(&solverThreads[i], NULL, solverThread, &threadConfigs[i]))
+        if(pthread_create(&solverThreadIDs[i], NULL, solverThread, &threadConfigs[i]))
         {
             printf("Failed to create enough solver threads.\r\n");
             exit(EXIT_FAILURE);
         }
     }
 
+    if(pthread_create(&monitorThreadID, NULL, monitorThread, NULL))
+    {
+        printf("Failed to create the monitor thread.\r\n");
+        exit(EXIT_FAILURE);
+    }
+
     for(unsigned long i = 0; i < parallelJobs; i++)
     {
-        pthread_join(solverThreads[i], NULL);
+        pthread_join(solverThreadIDs[i], NULL);
     }
+
+    pthread_join(monitorThreadID, NULL);
 
     printf("Tried all possible hexagons.\r\n");
 }
