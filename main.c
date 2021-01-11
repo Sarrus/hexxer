@@ -170,6 +170,8 @@ void solveInParallel()
 
     pthread_mutex_init(&solutionValidationMutex, NULL);
 
+    nice(5);
+
     for(unsigned long i = 0; i < parallelJobs; i++)
     {
         threadConfigs[i].currentHexagon = threadConfigs[i].firstHexagon = hexagonAllocation;
