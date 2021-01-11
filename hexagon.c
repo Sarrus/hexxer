@@ -52,7 +52,27 @@ const struct {
         {3, {14, 15, 17}}
 };
 
-
+char cellRotationMap[TOTAL_SEGMENTS] = {
+        2,  // 0
+        6,  // 1
+        11, // 2
+        1,  // 3
+        5,  // 4
+        10, // 5
+        15, // 6
+        0,  // 7
+        4,  // 8
+        9,  // 9
+        14, // 10
+        18, // 11
+        3,  // 12
+        8,  // 13
+        13, // 14
+        17, // 15
+        7,  // 16
+        12, // 17
+        16  // 18
+};
 
 char colourToChar(COLOUR colour)
 {
@@ -171,6 +191,23 @@ void longToHexagon(HEXAGON_AS_INT number, HEXAGON * hexagon, bool lockLeftRed)
     {
         hexagon->row2[i] = (number >> ((i + 7) * 2)) % 4;
     }
+}
+
+HEXAGON_AS_INT rotateHexagonRight(HEXAGON_AS_INT hexagon)
+{
+    HEXAGON_AS_INT newHexagon = 0;
+
+    for(char i = 0; i < TOTAL_SEGMENTS; i++)
+    {
+        HEXAGON_AS_INT mask = 0b11;
+        mask <<= (i * 2);
+        mask &= hexagon;
+        mask >>= (i * 2);
+        mask <<= cellRotationMap[i] * 2;
+        newHexagon |= mask;
+    }
+
+    return newHexagon;
 }
 
 bool validateSolution(HEXAGON_AS_INT solution)
