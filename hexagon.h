@@ -33,7 +33,7 @@ struct hexagon{
 
 void printHexagon(HEXAGON * hexagon);
 void longToHexagon(HEXAGON_AS_INT number, HEXAGON * hexagon, bool lockLeftRed);
-HEXAGON_AS_INT rotateHexagonRight(HEXAGON_AS_INT hexagon);
 bool validateSolution(HEXAGON_AS_INT solution);
+HEXAGON_AS_INT checkSolutionForVisualMatches(HEXAGON_AS_INT solution);
 
 #endif //HEXXER_HEXAGON_H

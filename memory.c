@@ -10,18 +10,18 @@
 #define SOLUTION_PAGE_SIZE 5
 
 HEXAGON_AS_INT * solutions = NULL;
-HEXAGON_AS_INT solutionsStored = 0;
 HEXAGON_AS_INT solutionPageCount = 0;
-pthread_mutex_t solutionsMutex;
+//pthread_mutex_t solutionsMutex;
 
 void memoryInit()
 {
-    pthread_mutex_init(&solutionsMutex, NULL);
+    //pthread_mutex_init(&solutionsMutex, NULL);
+    solutionsStored = 0;
 }
 
 void storeSolution(HEXAGON_AS_INT solution)
 {
-    pthread_mutex_lock(&solutionsMutex);
+    //pthread_mutex_lock(&solutionsMutex);
 
     if(solutionsStored == solutionPageCount * SOLUTION_PAGE_SIZE)
     {
@@ -37,5 +37,16 @@ void storeSolution(HEXAGON_AS_INT solution)
     solutions[solutionsStored] = solution;
     solutionsStored++;
 
-    pthread_mutex_unlock(&solutionsMutex);
+    //pthread_mutex_unlock(&solutionsMutex);
+}
+
+HEXAGON_AS_INT retrieveSolution(HEXAGON_AS_INT solutionID)
+{
+    //pthread_mutex_lock(&solutionsMutex);
+
+    HEXAGON_AS_INT solution = solutions[solutionID];
+
+    //pthread_mutex_unlock(&solutionsMutex);
+
+    return solution;
 }

@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include "hexagon.h"
+#include "memory.h"
 
 /*
       /\  /\  /\
@@ -345,4 +346,23 @@ bool validateSolution(HEXAGON_AS_INT solution)
     }
 
     return true;
+}
+
+HEXAGON_AS_INT checkSolutionForVisualMatches(HEXAGON_AS_INT solution)
+{
+    for(HEXAGON_AS_INT i = 0; i < solutionsStored; i++)
+    {
+        HEXAGON_AS_INT rotatedSolution = solution;
+        for(char j = 0; j < 5; j++)
+        {
+            rotatedSolution = rotateHexagonRight(rotatedSolution);
+            HEXAGON_AS_INT solutionToTestAgainst = retrieveSolution(i);
+            if(solutionToTestAgainst == rotatedSolution)
+            {
+                return solutionToTestAgainst;
+            }
+        }
+    }
+
+    return 0;
 }

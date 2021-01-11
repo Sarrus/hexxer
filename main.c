@@ -26,20 +26,32 @@ HEXAGON_AS_INT solutionsFound = 0;
 
 bool lastPrintWasProgressLine = false;
 
+pthread_mutex_t solutionValidationMutex;
+
 void solveInSerial()
 {
 
     HEXAGON renderedHexagon;
+    HEXAGON_AS_INT matchedSolution;
 
     for(HEXAGON_AS_INT i = 0; i < TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED; i++)
     {
         if(validateSolution(i))
         {
             solutionsFound++;
-            storeSolution(i);
             printf("Solution found at hexagon no. %lu ", i);
+            if(matchedSolution = checkSolutionForVisualMatches(i))
+            {
+                printf("Visually matches solution no. %lu ", matchedSolution);
+            }
+            else
+            {
+                printf("No visual matches found. ");
+                storeSolution(i);
+            }
+
             printf("%f%% of all hexagons tried, ", 100 * (float)i / (float)TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED);
-            printf("%lu solutions found so far.\r\n", solutionsFound);
+            printf("%lu solutions found so far, %lu visually unique.\r\n", solutionsFound, solutionsStored);
             if(printHexagons)
             {
                 longToHexagon(i, &renderedHexagon, false);
@@ -79,6 +91,7 @@ void * solverThread(void * config)
 {
     SOLVER_THREAD_CONFIG * solverConfig = config;
     HEXAGON renderedHexagon;
+    HEXAGON_AS_INT matchedSolution;
 
     for(
             solverConfig->currentHexagon = solverConfig->firstHexagon;
@@ -89,7 +102,6 @@ void * solverThread(void * config)
         if(validateSolution(solverConfig->currentHexagon))
         {
             solutionsFound++;
-            storeSolution(solverConfig->currentHexagon);
             if(lastPrintWasProgressLine)
             {
                 printf("%c[2K\r", 27);
@@ -97,7 +109,22 @@ void * solverThread(void * config)
                 lastPrintWasProgressLine = false;
             }
             printf("Solution found at hexagon no. %lu ", solverConfig->currentHexagon);
-            printf("%lu solutions found so far.\r\n", solutionsFound);
+
+            pthread_mutex_lock(&solutionValidationMutex);
+
+            if((matchedSolution = checkSolutionForVisualMatches(solverConfig->currentHexagon)))
+            {
+                printf("Visually matches solution no. %lu ", matchedSolution);
+            }
+            else
+            {
+                printf("No visual matches found. ");
+                storeSolution(solverConfig->currentHexagon);
+            }
+
+            pthread_mutex_unlock(&solutionValidationMutex);
+
+            printf("%lu solutions found so far, %lu visually unique.\r\n", solutionsFound, solutionsStored);
             if(printHexagons)
             {
                 longToHexagon(solverConfig->currentHexagon, &renderedHexagon, false);
@@ -140,6 +167,8 @@ void solveInParallel()
     HEXAGON_AS_INT hexagonAllocation = 0;
 
     setbuf(stdout, NULL);
+
+    pthread_mutex_init(&solutionValidationMutex, NULL);
 
     for(unsigned long i = 0; i < parallelJobs; i++)
     {
