@@ -4,4 +4,4 @@ project(hexxer C)
 set(CMAKE_C_STANDARD 99)
 
 link_libraries(pthread)
-add_executable(hexxer main.c hexagon.c hexagon.h)
+add_executable(hexxer main.c hexagon.c hexagon.h memory.c memory.h)

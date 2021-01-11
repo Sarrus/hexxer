@@ -5,6 +5,7 @@
 #include <time.h>
 #include <pthread.h>
 #include "hexagon.h"
+#include "memory.h"
 
 #define MAX_PARALLEL_JOBS 256
 
@@ -35,6 +36,7 @@ void solveInSerial()
         if(validateSolution(i))
         {
             solutionsFound++;
+            storeSolution(i);
             printf("Solution found at hexagon no. %lu ", i);
             printf("%f%% of all hexagons tried, ", 100 * (float)i / (float)TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED);
             printf("%lu solutions found so far.\r\n", solutionsFound);
@@ -87,6 +89,7 @@ void * solverThread(void * config)
         if(validateSolution(solverConfig->currentHexagon))
         {
             solutionsFound++;
+            storeSolution(solverConfig->currentHexagon);
             if(lastPrintWasProgressLine)
             {
                 printf("%c[2K\r", 27);
@@ -213,6 +216,8 @@ int main(int argc, char ** argv)
                 return EXIT_FAILURE;
         }
     }
+
+    memoryInit();
 
     if(parallelJobs)
     {
