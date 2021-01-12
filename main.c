@@ -10,6 +10,7 @@
 #define MAX_PARALLEL_JOBS 256
 
 bool printHexagons = false;
+bool printVisualMatches = false;
 unsigned long parallelJobs = 0;
 
 struct solverThreadConfig
@@ -52,7 +53,16 @@ void solveInSerial()
 
             printf("%f%% of all hexagons tried, ", 100 * (float)i / (float)TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED);
             printf("%lu solutions found so far, %lu visually unique.\r\n", solutionsFound, solutionsStored);
-            if(printHexagons)
+            if(printVisualMatches && matchedSolution)
+            {
+                printf("Match:\r\n");
+                longToHexagon(matchedSolution, &renderedHexagon, false);
+                printHexagon(&renderedHexagon);
+                printf("New Solution:\r\n");
+                longToHexagon(i, &renderedHexagon, false);
+                printHexagon(&renderedHexagon);
+            }
+            else if(printHexagons)
             {
                 longToHexagon(i, &renderedHexagon, false);
                 printHexagon(&renderedHexagon);
@@ -125,7 +135,17 @@ void * solverThread(void * config)
             pthread_mutex_unlock(&solutionValidationMutex);
 
             printf("%lu solutions found so far, %lu visually unique.\r\n", solutionsFound, solutionsStored);
-            if(printHexagons)
+
+            if(printVisualMatches && matchedSolution)
+            {
+                printf("Match:\r\n");
+                longToHexagon(matchedSolution, &renderedHexagon, false);
+                printHexagon(&renderedHexagon);
+                printf("New Solution:\r\n");
+                longToHexagon(solverConfig->currentHexagon, &renderedHexagon, false);
+                printHexagon(&renderedHexagon);
+            }
+            else if(printHexagons)
             {
                 longToHexagon(solverConfig->currentHexagon, &renderedHexagon, false);
                 printHexagon(&renderedHexagon);
@@ -213,7 +233,7 @@ int main(int argc, char ** argv)
 
     int option;
 
-    while((option = getopt(argc, argv, "hj:p")) != -1)
+    while((option = getopt(argc, argv, "hj:mp")) != -1)
     {
         switch(option)
         {
@@ -221,6 +241,7 @@ int main(int argc, char ** argv)
                 printf("Usage: hexxer [options]\r\n");
                 printf("  -h  Display this help.\r\n");
                 printf("  -j  Number of parallel jobs to run. (Runs in serial mode if unspecified.)\r\n");
+                printf("  -m  Render and print visual matches.\r\n");
                 printf("  -p  Render and print all discovered solutions.\r\n");
                 return EXIT_SUCCESS;
 
@@ -236,6 +257,10 @@ int main(int argc, char ** argv)
                     printf("Parallel jobs limited to %i.\r\n", MAX_PARALLEL_JOBS);
                     return EXIT_FAILURE;
                 }
+                break;
+
+            case 'm':
+                printVisualMatches = true;
                 break;
 
             case 'p':

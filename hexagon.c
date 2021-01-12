@@ -53,7 +53,7 @@ const struct {
         {3, {14, 15, 17}}
 };
 
-char cellRotationMap[TOTAL_SEGMENTS] = {
+const char cellRotationMap[TOTAL_SEGMENTS] = {
         2,  // 0
         6,  // 1
         11, // 2
@@ -73,6 +73,50 @@ char cellRotationMap[TOTAL_SEGMENTS] = {
         7,  // 16
         12, // 17
         16  // 18
+};
+
+const char cellFlipMap1[TOTAL_SEGMENTS] = {
+        18, // 0
+        15, // 1
+        11, // 2
+        17, // 3
+        14, // 4
+        10, // 5
+        6,  // 6
+        16, // 7
+        13, // 8
+        9,  // 9
+        5,  // 10
+        2,  // 11
+        12, // 12
+        8,  // 13
+        4,  // 14
+        1,  // 15
+        7,  // 16
+        3,  // 17
+        0   // 18
+};
+
+const char cellFlipMap2[TOTAL_SEGMENTS] = {
+       16, // 0
+       17, // 1
+       18, // 2
+       12, // 3
+       13, // 4
+       14, // 5
+       15, // 6
+       7,  // 7
+       8,  // 8
+       9,  // 9
+       10, // 10
+       11, // 11
+       3,  // 12
+       4,  // 13
+       5,  // 14
+       6,  // 15
+       0,  // 16
+       1,  // 17
+       2   // 18
 };
 
 char colourToChar(COLOUR colour)
@@ -194,7 +238,7 @@ void longToHexagon(HEXAGON_AS_INT number, HEXAGON * hexagon, bool lockLeftRed)
     }
 }
 
-HEXAGON_AS_INT rotateHexagonRight(HEXAGON_AS_INT hexagon)
+HEXAGON_AS_INT rearrangeHexagon(HEXAGON_AS_INT hexagon, const char * substitutionMap)
 {
     HEXAGON_AS_INT newHexagon = 0;
 
@@ -204,7 +248,7 @@ HEXAGON_AS_INT rotateHexagonRight(HEXAGON_AS_INT hexagon)
         mask <<= (i * 2);
         mask &= hexagon;
         mask >>= (i * 2);
-        mask <<= cellRotationMap[i] * 2;
+        mask <<= substitutionMap[i] * 2;
         newHexagon |= mask;
     }
 
@@ -352,15 +396,40 @@ HEXAGON_AS_INT checkSolutionForVisualMatches(HEXAGON_AS_INT solution)
 {
     for(HEXAGON_AS_INT i = 0; i < solutionsStored; i++)
     {
+        // Check for rotational matches
         HEXAGON_AS_INT rotatedSolution = solution;
+        HEXAGON_AS_INT solutionToTestAgainst = retrieveSolution(i);
         for(char j = 0; j < 5; j++)
         {
-            rotatedSolution = rotateHexagonRight(rotatedSolution);
-            HEXAGON_AS_INT solutionToTestAgainst = retrieveSolution(i);
+            rotatedSolution = rearrangeHexagon(rotatedSolution, cellRotationMap);
             if(solutionToTestAgainst == rotatedSolution)
             {
                 return solutionToTestAgainst;
             }
+        }
+
+        // Check for rotational matches after flipping between edges
+        rotatedSolution = rearrangeHexagon(solution, cellFlipMap1);
+
+        for(char j = 0; j < 6; j++)
+        {
+            if(solutionToTestAgainst == rotatedSolution)
+            {
+                return solutionToTestAgainst;
+            }
+            rotatedSolution = rearrangeHexagon(rotatedSolution, cellRotationMap);
+        }
+
+        // Check for rotational matches after flipping between corners
+        rotatedSolution = rearrangeHexagon(solution, cellFlipMap2);
+
+        for(char j = 0; j < 6; j++)
+        {
+            if(solutionToTestAgainst == rotatedSolution)
+            {
+                return solutionToTestAgainst;
+            }
+            rotatedSolution = rearrangeHexagon(rotatedSolution, cellRotationMap);
         }
     }
 
