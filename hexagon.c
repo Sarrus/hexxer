@@ -119,19 +119,19 @@ const char cellFlipMap2[TOTAL_SEGMENTS] = {
        2   // 18
 };
 
-char colourToChar(COLOUR colour)
+char * colourToString(COLOUR colour)
 {
     switch(colour)
     {
 
         case RED:
-            return 'R';
+            return "\x1B[31mR\x1B[0m";
         case YELLOW:
-            return 'Y';
+            return "\x1B[33mY\x1B[0m";
         case GREEN:
-            return 'G';
+            return "\x1B[32mG\x1B[0m";
         case BLUE:
-            return 'B';
+            return "\x1B[34mB\x1B[0m";
         default:
             exit(EXIT_FAILURE);
     }
@@ -142,19 +142,19 @@ void printHexagon(HEXAGON * hexagon)
     const char hexMap[17][29] = {
             {"      /\\  /\\  /\\\r\n"},         //0
             {"     /  \\/  \\/  \\\r\n"},        //1
-            {"    | %c | %c | %c |\r\n"},           //2
+            {"    | %s | %s | %s |\r\n"},           //2
             {"    /\\  /\\  /\\  /\\\r\n"},      //3
             {"   /  \\/  \\/  \\/  \\\r\n"},     //4
-            {"  | %c | %c | %c | %c |\r\n"},         //5
+            {"  | %s | %s | %s | %s |\r\n"},         //5
             {"  /\\  /\\  /\\  /\\  /\\\r\n"},   //6
             {" /  \\/  \\/  \\/  \\/  \\\r\n"},  //7
-            {"| %c | %c | %c | %c | %c |\r\n"},       //8
+            {"| %s | %s | %s | %s | %s |\r\n"},       //8
             {" \\  /\\  /\\  /\\  /\\  /\r\n"},  //9
             {"  \\/  \\/  \\/  \\/  \\/\r\n"},   //10
-            {"  | %c | %c | %c | %c |\r\n"},         //11
+            {"  | %s | %s | %s | %s |\r\n"},         //11
             {"   \\  /\\  /\\  /\\  /\r\n"},     //12
             {"    \\/  \\/  \\/  \\/\r\n"},      //13
-            {"    | %c | %c | %c |\r\n"},           //14
+            {"    | %s | %s | %s |\r\n"},           //14
             {"     \\  /\\  /\\  /\r\n"},        //15
             {"      \\/  \\/  \\/\r\n"}          //16
     };
@@ -166,49 +166,49 @@ void printHexagon(HEXAGON * hexagon)
             case 2:
                 printf(
                         hexMap[i],
-                        colourToChar(hexagon->row0[0]),
-                        colourToChar(hexagon->row0[1]),
-                        colourToChar(hexagon->row0[2])
+                        colourToString(hexagon->row0[0]),
+                        colourToString(hexagon->row0[1]),
+                        colourToString(hexagon->row0[2])
                         );
                 break;
 
             case 5:
                 printf(
                         hexMap[i],
-                        colourToChar(hexagon->row1[0]),
-                        colourToChar(hexagon->row1[1]),
-                        colourToChar(hexagon->row1[2]),
-                        colourToChar(hexagon->row1[3])
+                        colourToString(hexagon->row1[0]),
+                        colourToString(hexagon->row1[1]),
+                        colourToString(hexagon->row1[2]),
+                        colourToString(hexagon->row1[3])
                 );
                 break;
 
             case 8:
                 printf(
                         hexMap[i],
-                        colourToChar(hexagon->row2[0]),
-                        colourToChar(hexagon->row2[1]),
-                        colourToChar(hexagon->row2[2]),
-                        colourToChar(hexagon->row2[3]),
-                        colourToChar(hexagon->row2[4])
+                        colourToString(hexagon->row2[0]),
+                        colourToString(hexagon->row2[1]),
+                        colourToString(hexagon->row2[2]),
+                        colourToString(hexagon->row2[3]),
+                        colourToString(hexagon->row2[4])
                 );
                 break;
 
             case 11:
                 printf(
                         hexMap[i],
-                        colourToChar(hexagon->row3[0]),
-                        colourToChar(hexagon->row3[1]),
-                        colourToChar(hexagon->row3[2]),
-                        colourToChar(hexagon->row3[3])
+                        colourToString(hexagon->row3[0]),
+                        colourToString(hexagon->row3[1]),
+                        colourToString(hexagon->row3[2]),
+                        colourToString(hexagon->row3[3])
                 );
                 break;
 
             case 14:
                 printf(
                         hexMap[i],
-                        colourToChar(hexagon->row4[0]),
-                        colourToChar(hexagon->row4[1]),
-                        colourToChar(hexagon->row4[2])
+                        colourToString(hexagon->row4[0]),
+                        colourToString(hexagon->row4[1]),
+                        colourToString(hexagon->row4[2])
                 );
                 break;
 
