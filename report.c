@@ -93,6 +93,10 @@ const char * reportEnd = "</body>\n"
                          "</html>\n";
 
 const char * breakBreak ="    <br>\n"
+                         "    <br>\n"
+                         "    <br>\n"
+                         "    <br>\n"
+                         "    <br>\n"
                          "    <br>\n";
 
 bool openReport(const char * location)
