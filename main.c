@@ -4,14 +4,18 @@
 #include <stdbool.h>
 #include <time.h>
 #include <pthread.h>
+#include <errno.h>
 #include "hexagon.h"
 #include "memory.h"
+#include "report.h"
 
 #define MAX_PARALLEL_JOBS 256
 
 bool printHexagons = false;
 bool printVisualMatches = false;
 unsigned long parallelJobs = 0;
+bool saveHTMLReport = false;
+bool stopOnFirstSolution = false;
 
 struct solverThreadConfig
 {
@@ -29,6 +33,12 @@ bool lastPrintWasProgressLine = false;
 
 pthread_mutex_t solutionValidationMutex;
 
+pthread_t solverThreadIDs[MAX_PARALLEL_JOBS];
+
+pthread_t monitorThreadID;
+
+pthread_t killerThread;
+
 void solveInSerial()
 {
 
@@ -40,14 +50,20 @@ void solveInSerial()
         if(validateSolution(i))
         {
             solutionsFound++;
-            printf("Solution found at hexagon no. %lu ", i);
-            if(matchedSolution = checkSolutionForVisualMatches(i))
+            printf("Solution found at hexagon no. %lu, ", i);
+            if(stopOnFirstSolution)
             {
-                printf("Visually matches solution no. %lu ", matchedSolution);
+                printf("stopping.\r\n");
+                storeSolution(i);
+                return;
+            }
+            else if(matchedSolution = checkSolutionForVisualMatches(i))
+            {
+                printf("visually matches solution no. %lu ", matchedSolution);
             }
             else
             {
-                printf("No visual matches found. ");
+                printf("no visual matches found. ");
                 storeSolution(i);
             }
 
@@ -97,6 +113,17 @@ HEXAGON_AS_INT printParallelProgress()
     return hexagonsProcessed;
 }
 
+void * stopSolvingInParallel(void * unused)
+{
+    for(int i = 0; i < parallelJobs; i++)
+    {
+        pthread_cancel(solverThreadIDs[i]);
+    }
+
+    pthread_cancel(monitorThreadID);
+    return NULL;
+}
+
 void * solverThread(void * config)
 {
     SOLVER_THREAD_CONFIG * solverConfig = config;
@@ -118,17 +145,23 @@ void * solverThread(void * config)
                 //printf("\r\n");
                 lastPrintWasProgressLine = false;
             }
-            printf("Solution found at hexagon no. %lu ", solverConfig->currentHexagon);
+            printf("Solution found at hexagon no. %lu, ", solverConfig->currentHexagon);
 
             pthread_mutex_lock(&solutionValidationMutex);
 
-            if((matchedSolution = checkSolutionForVisualMatches(solverConfig->currentHexagon)))
+            if(stopOnFirstSolution)
             {
-                printf("Visually matches solution no. %lu ", matchedSolution);
+                printf("stopping.\r\n");
+                storeSolution(solverConfig->currentHexagon);
+                pthread_create(&killerThread, NULL, stopSolvingInParallel, NULL);
+            }
+            else if((matchedSolution = checkSolutionForVisualMatches(solverConfig->currentHexagon)))
+            {
+                printf("visually matches solution no. %lu ", matchedSolution);
             }
             else
             {
-                printf("No visual matches found. ");
+                printf("no visual matches found. ");
                 storeSolution(solverConfig->currentHexagon);
             }
 
@@ -153,6 +186,10 @@ void * solverThread(void * config)
 
             printParallelProgress();
         }
+        else if(stopOnFirstSolution)
+        {
+            pthread_testcancel();
+        }
     }
 
     //printf("This solver's range is: %lu to %lu.\r\n", solverConfig->firstHexagon, solverConfig->lastHexagon);
@@ -163,7 +200,7 @@ void * monitorThread(void * config)
 {
     while(1)
     {
-
+        pthread_testcancel();
 
         if(printParallelProgress() == TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED)
         {
@@ -178,10 +215,7 @@ void * monitorThread(void * config)
 
 void solveInParallel()
 {
-    pthread_t solverThreadIDs[MAX_PARALLEL_JOBS];
 
-
-    pthread_t monitorThreadID;
 
     HEXAGON_AS_INT hexagonsPerSolver = TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED / parallelJobs;
     HEXAGON_AS_INT hexagonAllocation = 0;
@@ -224,7 +258,14 @@ void solveInParallel()
 
     pthread_join(monitorThreadID, NULL);
 
-    printf("Tried all possible hexagons.\r\n");
+    if(stopOnFirstSolution)
+    {
+        printf(" Stopped.\r\n");
+    }
+    else
+    {
+        printf("Tried all possible hexagons.\r\n");
+    }
 }
 
 int main(int argc, char ** argv)
@@ -233,7 +274,7 @@ int main(int argc, char ** argv)
 
     int option;
 
-    while((option = getopt(argc, argv, "hj:mp")) != -1)
+    while((option = getopt(argc, argv, "hj:mpr:s")) != -1)
     {
         switch(option)
         {
@@ -243,6 +284,8 @@ int main(int argc, char ** argv)
                 printf("  -j  Number of parallel jobs to run. (Runs in serial mode if unspecified.)\r\n");
                 printf("  -m  Render and print visual matches.\r\n");
                 printf("  -p  Render and print all discovered solutions.\r\n");
+                printf("  -r  Generate an HTML report of unique solutions saved in the indicated location.\r\n");
+                printf("  -s  Stop when a solution is found.\r\n");
                 return EXIT_SUCCESS;
 
             case 'j':
@@ -267,6 +310,19 @@ int main(int argc, char ** argv)
                 printHexagons = true;
                 break;
 
+            case 'r':
+                saveHTMLReport = true;
+                if(!openReport(optarg))
+                {
+                    printf("Unable to open report file for writing. Error:%i\r\n", errno);
+                    return EXIT_FAILURE;
+                }
+                break;
+
+            case 's':
+                stopOnFirstSolution = true;
+                break;
+
             case '?':
             default:
                 return EXIT_FAILURE;
@@ -282,6 +338,11 @@ int main(int argc, char ** argv)
     else
     {
         solveInSerial();
+    }
+
+    if(saveHTMLReport)
+    {
+        generateReport();
     }
 
     return EXIT_SUCCESS;
