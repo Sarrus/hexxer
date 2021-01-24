@@ -10,6 +10,7 @@
 #include "report.h"
 
 #define MAX_PARALLEL_JOBS 256
+#define PARALLEL_SOLVER_ALLOCATION_BLOCK 10000000
 
 bool printHexagons = false;
 bool printVisualMatches = false;
@@ -29,9 +30,13 @@ SOLVER_THREAD_CONFIG threadConfigs[MAX_PARALLEL_JOBS];
 
 HEXAGON_AS_INT solutionsFound = 0;
 
+HEXAGON_AS_INT solverHexagonAllocationQueue = 0;
+
 bool lastPrintWasProgressLine = false;
 
 pthread_mutex_t solutionValidationMutex;
+
+pthread_mutex_t solverAllocationMutex;
 
 pthread_t solverThreadIDs[MAX_PARALLEL_JOBS];
 
@@ -91,7 +96,7 @@ void solveInSerial()
 
 HEXAGON_AS_INT printParallelProgress()
 {
-    HEXAGON_AS_INT hexagonsProcessed = 0;
+    HEXAGON_AS_INT hexagonsProcessed = solverHexagonAllocationQueue - (PARALLEL_SOLVER_ALLOCATION_BLOCK * parallelJobs);
     for(unsigned long i = 0; i < parallelJobs; i++)
     {
         hexagonsProcessed += threadConfigs[i].currentHexagon - threadConfigs[i].firstHexagon;
@@ -130,84 +135,109 @@ void * solverThread(void * config)
     HEXAGON renderedHexagon;
     HEXAGON_AS_INT matchedSolution;
 
-    for(
-            solverConfig->currentHexagon = solverConfig->firstHexagon;
-            solverConfig->currentHexagon < solverConfig->lastHexagon;
-            solverConfig->currentHexagon++
-            )
+    while(1)
     {
-        if(validateSolution(solverConfig->currentHexagon))
+        pthread_mutex_lock(&solverAllocationMutex);
+
+        if(solverHexagonAllocationQueue == TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED)
         {
-            solutionsFound++;
-            if(lastPrintWasProgressLine)
-            {
-                printf("%c[2K\r", 27);
-                //printf("\r\n");
-                lastPrintWasProgressLine = false;
-            }
-            printf("Solution found at hexagon no. %lu, ", solverConfig->currentHexagon);
-
-            pthread_mutex_lock(&solutionValidationMutex);
-
-            if(stopOnFirstSolution)
-            {
-                printf("stopping.\r\n");
-                storeSolution(solverConfig->currentHexagon);
-                pthread_create(&killerThread, NULL, stopSolvingInParallel, NULL);
-            }
-            else if((matchedSolution = checkSolutionForVisualMatches(solverConfig->currentHexagon)))
-            {
-                printf("visually matches solution no. %lu ", matchedSolution);
-            }
-            else
-            {
-                printf("no visual matches found. ");
-                storeSolution(solverConfig->currentHexagon);
-            }
-
-            pthread_mutex_unlock(&solutionValidationMutex);
-
-            printf("%lu solutions found so far, %lu visually unique.\r\n", solutionsFound, solutionsStored);
-
-            if(printVisualMatches && matchedSolution)
-            {
-                printf("Match:\r\n");
-                longToHexagon(matchedSolution, &renderedHexagon, false);
-                printHexagon(&renderedHexagon);
-                printf("New Solution:\r\n");
-                longToHexagon(solverConfig->currentHexagon, &renderedHexagon, false);
-                printHexagon(&renderedHexagon);
-            }
-            else if(printHexagons)
-            {
-                longToHexagon(solverConfig->currentHexagon, &renderedHexagon, false);
-                printHexagon(&renderedHexagon);
-            }
-
-            printParallelProgress();
+            pthread_mutex_unlock(&solverAllocationMutex);
+            return NULL;
         }
-        else if(stopOnFirstSolution)
+
+        solverConfig->firstHexagon = solverConfig->currentHexagon = solverHexagonAllocationQueue;
+
+        HEXAGON_AS_INT allocationStep = solverHexagonAllocationQueue + PARALLEL_SOLVER_ALLOCATION_BLOCK;
+
+        if(allocationStep > TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED)
         {
-            pthread_testcancel();
+            solverHexagonAllocationQueue = TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED;
+        }
+        else
+        {
+            solverConfig->lastHexagon = solverHexagonAllocationQueue = allocationStep;
+        }
+
+        pthread_mutex_unlock(&solverAllocationMutex);
+
+        //printf("This solver's range is: %lu to %lu.\r\n", solverConfig->firstHexagon, solverConfig->lastHexagon);
+
+        for(
+                solverConfig->currentHexagon = solverConfig->firstHexagon;
+                solverConfig->currentHexagon < solverConfig->lastHexagon;
+                solverConfig->currentHexagon++
+                )
+        {
+            if(validateSolution(solverConfig->currentHexagon))
+            {
+                solutionsFound++;
+                if(lastPrintWasProgressLine)
+                {
+                    printf("%c[2K\r", 27);
+                    //printf("\r\n");
+                    lastPrintWasProgressLine = false;
+                }
+                printf("Solution found at hexagon no. %lu, ", solverConfig->currentHexagon);
+
+                pthread_mutex_lock(&solutionValidationMutex);
+
+                if(stopOnFirstSolution)
+                {
+                    printf("stopping.\r\n");
+                    storeSolution(solverConfig->currentHexagon);
+                    pthread_create(&killerThread, NULL, stopSolvingInParallel, NULL);
+                }
+                else if((matchedSolution = checkSolutionForVisualMatches(solverConfig->currentHexagon)))
+                {
+                    printf("visually matches solution no. %lu ", matchedSolution);
+                }
+                else
+                {
+                    printf("no visual matches found. ");
+                    storeSolution(solverConfig->currentHexagon);
+                }
+
+                pthread_mutex_unlock(&solutionValidationMutex);
+
+                printf("%lu solutions found so far, %lu visually unique.\r\n", solutionsFound, solutionsStored);
+
+                if(printVisualMatches && matchedSolution)
+                {
+                    printf("Match:\r\n");
+                    longToHexagon(matchedSolution, &renderedHexagon, false);
+                    printHexagon(&renderedHexagon);
+                    printf("New Solution:\r\n");
+                    longToHexagon(solverConfig->currentHexagon, &renderedHexagon, false);
+                    printHexagon(&renderedHexagon);
+                }
+                else if(printHexagons)
+                {
+                    longToHexagon(solverConfig->currentHexagon, &renderedHexagon, false);
+                    printHexagon(&renderedHexagon);
+                }
+
+                printParallelProgress();
+            }
+            else if(stopOnFirstSolution)
+            {
+                pthread_testcancel();
+            }
         }
     }
-
-    //printf("This solver's range is: %lu to %lu.\r\n", solverConfig->firstHexagon, solverConfig->lastHexagon);
-    return NULL;
 }
 
 void * monitorThread(void * config)
 {
     while(1)
     {
+        sleep(1);
+
         pthread_testcancel();
 
         if(printParallelProgress() == TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED)
         {
             break;
         }
-
-        sleep(1);
     }
 
     return NULL;
@@ -223,20 +253,25 @@ void solveInParallel()
     setbuf(stdout, NULL);
 
     pthread_mutex_init(&solutionValidationMutex, NULL);
+    pthread_mutex_init(&solverAllocationMutex, NULL);
 
     nice(5);
 
     for(unsigned long i = 0; i < parallelJobs; i++)
     {
-        threadConfigs[i].currentHexagon = threadConfigs[i].firstHexagon = hexagonAllocation;
-        hexagonAllocation += hexagonsPerSolver;
+//        threadConfigs[i].currentHexagon = threadConfigs[i].firstHexagon = hexagonAllocation;
+//        hexagonAllocation += hexagonsPerSolver;
+//
+//        if(!i)
+//        {
+//            hexagonAllocation += TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED % parallelJobs;
+//        }
+//
+//        threadConfigs[i].lastHexagon = hexagonAllocation;
 
-        if(!i)
-        {
-            hexagonAllocation += TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED % parallelJobs;
-        }
-
-        threadConfigs[i].lastHexagon = hexagonAllocation;
+//        threadConfigs[i].firstHexagon = 0;
+//        threadConfigs[i].currentHexagon = 0;
+//        threadConfigs[i].lastHexagon = 0;
 
         if(pthread_create(&solverThreadIDs[i], NULL, solverThread, &threadConfigs[i]))
         {
