@@ -340,13 +340,20 @@ int main(int argc, char ** argv)
     opterr = true;
 
     int option;
+    HEXAGON displayHexagon;
 
-    while((option = getopt(argc, argv, "hj:mo:pr:su:")) != -1)
+    while((option = getopt(argc, argv, "d:hj:mo:pr:st:u:")) != -1)
     {
         switch(option)
         {
+            case 'd':
+                longToHexagon(strtoul(optarg, NULL, 10), &displayHexagon, false);
+                printHexagon(&displayHexagon);
+                return EXIT_SUCCESS;
+
             case 'h':
                 fprintf(stderr, "Usage: hexxer [options]\r\n");
+                fprintf(stderr, "  -d  Display the hexagon specified by its ID then exit.\r\n");
                 fprintf(stderr, "  -h  Display this help.\r\n");
                 fprintf(stderr, "  -j  Number of parallel jobs to run. (Runs in serial mode if unspecified.)\r\n");
                 fprintf(stderr, "  -m  Render and print visual matches.\r\n");
@@ -355,6 +362,7 @@ int main(int argc, char ** argv)
                 fprintf(stderr, "  -p  Render and print all discovered solutions.\r\n");
                 fprintf(stderr, "  -r  Generate an HTML report of unique solutions saved in the indicated location.\r\n");
                 fprintf(stderr, "  -s  Stop when a solution is found.\r\n");
+                fprintf(stderr, "  -t  Test a single solution specified by its ID to see if it is considered valid.\r\n");
                 fprintf(stderr, "  -u  Write the ID of each visually unique solution as it is found to the specified "
                                 "location. ('-' to write to stdout.)\r\n");
                 return EXIT_SUCCESS;
@@ -406,6 +414,19 @@ int main(int argc, char ** argv)
             case 's':
                 stopOnFirstSolution = true;
                 break;
+
+            case 't':
+                fprintf(stderr, "Solution %s is ", optarg);
+                if(validateSolution(strtoul(optarg, NULL, 10)))
+                {
+                    fprintf(stderr, "\x1B[32mVALID\x1B[0m.\r\n");
+                    return EXIT_SUCCESS;
+                }
+                else
+                {
+                    fprintf(stderr, "\x1B[31mINVALID\x1B[0m.\r\n");
+                    return EXIT_FAILURE;
+                }
 
             case 'u':
                 saveUniqueSolutionIDs = true;

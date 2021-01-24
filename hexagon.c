@@ -272,6 +272,8 @@ bool validateSolution(HEXAGON_AS_INT solution)
     char greensAt[TOTAL_SEGMENTS];
     char bluesAt[TOTAL_SEGMENTS];
 
+    // Count the colours used and record their locations. We don't count the last cell yet because it is not included
+    // in the first validation stage.
     for(char i = 0; i < TOTAL_SEGMENTS_WITH_LEFT_RED_LOCKED; i++)
     {
         switch((solution >> i * 2) % 4)
@@ -308,6 +310,10 @@ bool validateSolution(HEXAGON_AS_INT solution)
         // Less than three of a colour found
         return false;
     }
+
+    // Now we add the last cell to the tally.
+    redsAt[reds] = LOCKED_RED_LOCATION;
+    reds++;
 
     for(char i = 0; i < greens; i++)
     {
