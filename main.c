@@ -322,6 +322,7 @@ void solveInParallel()
         pthread_join(solverThreadIDs[i], NULL);
     }
 
+    pthread_cancel(monitorThreadID);
     pthread_join(monitorThreadID, NULL);
 
     if(stopOnFirstSolution)
