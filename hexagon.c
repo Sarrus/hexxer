@@ -164,7 +164,8 @@ void printHexagon(HEXAGON * hexagon)
         switch(i)
         {
             case 2:
-                printf(
+                fprintf(
+                        stderr,
                         hexMap[i],
                         colourToString(hexagon->row0[0]),
                         colourToString(hexagon->row0[1]),
@@ -173,7 +174,8 @@ void printHexagon(HEXAGON * hexagon)
                 break;
 
             case 5:
-                printf(
+                fprintf(
+                        stderr,
                         hexMap[i],
                         colourToString(hexagon->row1[0]),
                         colourToString(hexagon->row1[1]),
@@ -183,7 +185,8 @@ void printHexagon(HEXAGON * hexagon)
                 break;
 
             case 8:
-                printf(
+                fprintf(
+                        stderr,
                         hexMap[i],
                         colourToString(hexagon->row2[0]),
                         colourToString(hexagon->row2[1]),
@@ -194,7 +197,8 @@ void printHexagon(HEXAGON * hexagon)
                 break;
 
             case 11:
-                printf(
+                fprintf(
+                        stderr,
                         hexMap[i],
                         colourToString(hexagon->row3[0]),
                         colourToString(hexagon->row3[1]),
@@ -204,7 +208,8 @@ void printHexagon(HEXAGON * hexagon)
                 break;
 
             case 14:
-                printf(
+                fprintf(
+                        stderr,
                         hexMap[i],
                         colourToString(hexagon->row4[0]),
                         colourToString(hexagon->row4[1]),
@@ -213,7 +218,7 @@ void printHexagon(HEXAGON * hexagon)
                 break;
 
             default:
-                printf(hexMap[i]);
+                fprintf(stderr, hexMap[i]);
         }
     }
 }

@@ -29,7 +29,7 @@ void storeSolution(HEXAGON_AS_INT solution)
         solutions = realloc(solutions, sizeof(HEXAGON_AS_INT) * SOLUTION_PAGE_SIZE * solutionPageCount);
         if(solutions == NULL)
         {
-            printf("Memory allocation error.\r\n");
+            fprintf(stderr, "Memory allocation error.\r\n");
             exit(EXIT_FAILURE);
         }
     }

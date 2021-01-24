@@ -5,18 +5,28 @@
 #include <time.h>
 #include <pthread.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <string.h>
 #include "hexagon.h"
 #include "memory.h"
 #include "report.h"
 
+#define FP int
+
 #define MAX_PARALLEL_JOBS 256
 #define PARALLEL_SOLVER_ALLOCATION_BLOCK 10000000
+#define ID_PRINT_MAX_SIZE 15
 
 bool printHexagons = false;
 bool printVisualMatches = false;
 unsigned long parallelJobs = 0;
 bool saveHTMLReport = false;
 bool stopOnFirstSolution = false;
+bool saveAllSolutionIDs = false;
+bool saveUniqueSolutionIDs = false;
+
+FP allSolutionsLocationHandle;
+FP uniqueSolutionsLocationHandle;
 
 struct solverThreadConfig
 {
@@ -49,37 +59,50 @@ void solveInSerial()
 
     HEXAGON renderedHexagon;
     HEXAGON_AS_INT matchedSolution;
+    char solutionString[ID_PRINT_MAX_SIZE];
 
     for(HEXAGON_AS_INT i = 0; i < TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED; i++)
     {
         if(validateSolution(i))
         {
             solutionsFound++;
-            printf("Solution found at hexagon no. %lu, ", i);
+            fprintf(stderr, "Solution found at hexagon no. %lu, ", i);
+
+            if(saveAllSolutionIDs)
+            {
+                snprintf(solutionString, ID_PRINT_MAX_SIZE, "%lu\r\n", i);
+                write(allSolutionsLocationHandle, solutionString, strlen(solutionString));
+            }
+
             if(stopOnFirstSolution)
             {
-                printf("stopping.\r\n");
+                fprintf(stderr, "stopping.\r\n");
                 storeSolution(i);
                 return;
             }
             else if((matchedSolution = checkSolutionForVisualMatches(i)))
             {
-                printf("visually matches solution no. %lu ", matchedSolution);
+                fprintf(stderr, "visually matches solution no. %lu ", matchedSolution);
             }
             else
             {
-                printf("no visual matches found. ");
+                fprintf(stderr, "no visual matches found. ");
                 storeSolution(i);
+                if(saveUniqueSolutionIDs)
+                {
+                    snprintf(solutionString, ID_PRINT_MAX_SIZE, "%lu\r\n", i);
+                    write(uniqueSolutionsLocationHandle, solutionString, strlen(solutionString));
+                }
             }
 
-            printf("%f%% of all hexagons tried, ", 100 * (float)i / (float)TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED);
-            printf("%lu solutions found so far, %lu visually unique.\r\n", solutionsFound, solutionsStored);
+            fprintf(stderr, "%f%% of all hexagons tried, ", 100 * (float)i / (float)TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED);
+            fprintf(stderr, "%lu solutions found so far, %lu visually unique.\r\n", solutionsFound, solutionsStored);
             if(printVisualMatches && matchedSolution)
             {
-                printf("Match:\r\n");
+                fprintf(stderr, "Match:\r\n");
                 longToHexagon(matchedSolution, &renderedHexagon, false);
                 printHexagon(&renderedHexagon);
-                printf("New Solution:\r\n");
+                fprintf(stderr, "New Solution:\r\n");
                 longToHexagon(i, &renderedHexagon, false);
                 printHexagon(&renderedHexagon);
             }
@@ -91,7 +114,7 @@ void solveInSerial()
         }
     }
 
-    printf("Tried all possible hexagons.\r\n");
+    fprintf(stderr, "Tried all possible hexagons.\r\n");
 }
 
 HEXAGON_AS_INT printParallelProgress()
@@ -104,10 +127,10 @@ HEXAGON_AS_INT printParallelProgress()
 
     if(lastPrintWasProgressLine)
     {
-        printf("%c[2K\r", 27);
+        fprintf(stderr, "%c[2K\r", 27);
     }
 
-    printf(
+    fprintf(stderr, 
             "%lu hexagons processed so far, %f%% of total.",
             hexagonsProcessed,
             100 * (float)hexagonsProcessed / (float)TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED
@@ -134,6 +157,7 @@ void * solverThread(void * config)
     SOLVER_THREAD_CONFIG * solverConfig = config;
     HEXAGON renderedHexagon;
     HEXAGON_AS_INT matchedSolution;
+    char solutionString[ID_PRINT_MAX_SIZE];
 
     while(1)
     {
@@ -160,7 +184,7 @@ void * solverThread(void * config)
 
         pthread_mutex_unlock(&solverAllocationMutex);
 
-        //printf("This solver's range is: %lu to %lu.\r\n", solverConfig->firstHexagon, solverConfig->lastHexagon);
+        //fprintf(stderr, "This solver's range is: %lu to %lu.\r\n", solverConfig->firstHexagon, solverConfig->lastHexagon);
 
         for(
                 solverConfig->currentHexagon = solverConfig->firstHexagon;
@@ -173,40 +197,51 @@ void * solverThread(void * config)
                 solutionsFound++;
                 if(lastPrintWasProgressLine)
                 {
-                    printf("%c[2K\r", 27);
-                    //printf("\r\n");
+                    fprintf(stderr, "%c[2K\r", 27);
+                    //fprintf(stderr, "\r\n");
                     lastPrintWasProgressLine = false;
                 }
-                printf("Solution found at hexagon no. %lu, ", solverConfig->currentHexagon);
+                fprintf(stderr, "Solution found at hexagon no. %lu, ", solverConfig->currentHexagon);
+
+                if(saveAllSolutionIDs)
+                {
+                    snprintf(solutionString, ID_PRINT_MAX_SIZE, "%lu\r\n", solverConfig->currentHexagon);
+                    write(allSolutionsLocationHandle, solutionString, strlen(solutionString));
+                }
 
                 pthread_mutex_lock(&solutionValidationMutex);
 
                 if(stopOnFirstSolution)
                 {
-                    printf("stopping.\r\n");
+                    fprintf(stderr, "stopping.\r\n");
                     storeSolution(solverConfig->currentHexagon);
                     pthread_create(&killerThread, NULL, stopSolvingInParallel, NULL);
                 }
                 else if((matchedSolution = checkSolutionForVisualMatches(solverConfig->currentHexagon)))
                 {
-                    printf("visually matches solution no. %lu ", matchedSolution);
+                    fprintf(stderr, "visually matches solution no. %lu ", matchedSolution);
                 }
                 else
                 {
-                    printf("no visual matches found. ");
+                    fprintf(stderr, "no visual matches found. ");
                     storeSolution(solverConfig->currentHexagon);
+                    if(saveUniqueSolutionIDs)
+                    {
+                        snprintf(solutionString, ID_PRINT_MAX_SIZE, "%lu\r\n", solverConfig->currentHexagon);
+                        write(uniqueSolutionsLocationHandle, solutionString, strlen(solutionString));
+                    }
                 }
 
                 pthread_mutex_unlock(&solutionValidationMutex);
 
-                printf("%lu solutions found so far, %lu visually unique.\r\n", solutionsFound, solutionsStored);
+                fprintf(stderr, "%lu solutions found so far, %lu visually unique.\r\n", solutionsFound, solutionsStored);
 
                 if(printVisualMatches && matchedSolution)
                 {
-                    printf("Match:\r\n");
+                    fprintf(stderr, "Match:\r\n");
                     longToHexagon(matchedSolution, &renderedHexagon, false);
                     printHexagon(&renderedHexagon);
-                    printf("New Solution:\r\n");
+                    fprintf(stderr, "New Solution:\r\n");
                     longToHexagon(solverConfig->currentHexagon, &renderedHexagon, false);
                     printHexagon(&renderedHexagon);
                 }
@@ -245,12 +280,8 @@ void * monitorThread(void * config)
 
 void solveInParallel()
 {
-
-
     HEXAGON_AS_INT hexagonsPerSolver = TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED / parallelJobs;
     HEXAGON_AS_INT hexagonAllocation = 0;
-
-    setbuf(stdout, NULL);
 
     pthread_mutex_init(&solutionValidationMutex, NULL);
     pthread_mutex_init(&solverAllocationMutex, NULL);
@@ -275,14 +306,14 @@ void solveInParallel()
 
         if(pthread_create(&solverThreadIDs[i], NULL, solverThread, &threadConfigs[i]))
         {
-            printf("Failed to create enough solver threads.\r\n");
+            fprintf(stderr, "Failed to create enough solver threads.\r\n");
             exit(EXIT_FAILURE);
         }
     }
 
     if(pthread_create(&monitorThreadID, NULL, monitorThread, NULL))
     {
-        printf("Failed to create the monitor thread.\r\n");
+        fprintf(stderr, "Failed to create the monitor thread.\r\n");
         exit(EXIT_FAILURE);
     }
 
@@ -295,11 +326,11 @@ void solveInParallel()
 
     if(stopOnFirstSolution)
     {
-        printf(" Stopped.\r\n");
+        fprintf(stderr, " Stopped.\r\n");
     }
     else
     {
-        printf("Tried all possible hexagons.\r\n");
+        fprintf(stderr, "Tried all possible hexagons.\r\n");
     }
 }
 
@@ -309,36 +340,53 @@ int main(int argc, char ** argv)
 
     int option;
 
-    while((option = getopt(argc, argv, "hj:mpr:s")) != -1)
+    while((option = getopt(argc, argv, "hj:mo:pr:su:")) != -1)
     {
         switch(option)
         {
             case 'h':
-                printf("Usage: hexxer [options]\r\n");
-                printf("  -h  Display this help.\r\n");
-                printf("  -j  Number of parallel jobs to run. (Runs in serial mode if unspecified.)\r\n");
-                printf("  -m  Render and print visual matches.\r\n");
-                printf("  -p  Render and print all discovered solutions.\r\n");
-                printf("  -r  Generate an HTML report of unique solutions saved in the indicated location.\r\n");
-                printf("  -s  Stop when a solution is found.\r\n");
+                fprintf(stderr, "Usage: hexxer [options]\r\n");
+                fprintf(stderr, "  -h  Display this help.\r\n");
+                fprintf(stderr, "  -j  Number of parallel jobs to run. (Runs in serial mode if unspecified.)\r\n");
+                fprintf(stderr, "  -m  Render and print visual matches.\r\n");
+                fprintf(stderr, "  -o  Write the ID of each solution as it is found to the specified location. ('-' to "
+                                "write to stdout.)\r\n");
+                fprintf(stderr, "  -p  Render and print all discovered solutions.\r\n");
+                fprintf(stderr, "  -r  Generate an HTML report of unique solutions saved in the indicated location.\r\n");
+                fprintf(stderr, "  -s  Stop when a solution is found.\r\n");
+                fprintf(stderr, "  -u  Write the ID of each visually unique solution as it is found to the specified "
+                                "location. ('-' to write to stdout.)\r\n");
                 return EXIT_SUCCESS;
 
             case 'j':
                 parallelJobs = strtoul(optarg, NULL, 10);
                 if(!parallelJobs)
                 {
-                    printf("Invalid number of parallel jobs.\r\n");
+                    fprintf(stderr, "Invalid number of parallel jobs.\r\n");
                     return EXIT_FAILURE;
                 }
                 else if(parallelJobs > MAX_PARALLEL_JOBS)
                 {
-                    printf("Parallel jobs limited to %i.\r\n", MAX_PARALLEL_JOBS);
+                    fprintf(stderr, "Parallel jobs limited to %i.\r\n", MAX_PARALLEL_JOBS);
                     return EXIT_FAILURE;
                 }
                 break;
 
             case 'm':
                 printVisualMatches = true;
+                break;
+
+            case 'o':
+                saveAllSolutionIDs = true;
+                if(!strcmp(optarg, "-"))
+                {
+                    allSolutionsLocationHandle = STDOUT_FILENO;
+                }
+                else if((allSolutionsLocationHandle = open(optarg, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) == -1)
+                {
+                    fprintf(stderr, "Unable to open all solutions file for writing. Error:%i\r\n", errno);
+                    return EXIT_FAILURE;
+                }
                 break;
 
             case 'p':
@@ -349,13 +397,26 @@ int main(int argc, char ** argv)
                 saveHTMLReport = true;
                 if(!openReport(optarg))
                 {
-                    printf("Unable to open report file for writing. Error:%i\r\n", errno);
+                    fprintf(stderr, "Unable to open report file for writing. Error:%i\r\n", errno);
                     return EXIT_FAILURE;
                 }
                 break;
 
             case 's':
                 stopOnFirstSolution = true;
+                break;
+
+            case 'u':
+                saveUniqueSolutionIDs = true;
+                if(!strcmp(optarg, "-"))
+                {
+                    uniqueSolutionsLocationHandle = STDOUT_FILENO;
+                }
+                else if((uniqueSolutionsLocationHandle = open(optarg, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) == -1)
+                {
+                    fprintf(stderr, "Unable to open unique solutions file for writing. Error:%i\r\n", errno);
+                    return EXIT_FAILURE;
+                }
                 break;
 
             case '?':
