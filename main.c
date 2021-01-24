@@ -62,7 +62,7 @@ void solveInSerial()
                 storeSolution(i);
                 return;
             }
-            else if(matchedSolution = checkSolutionForVisualMatches(i))
+            else if((matchedSolution = checkSolutionForVisualMatches(i)))
             {
                 printf("visually matches solution no. %lu ", matchedSolution);
             }
