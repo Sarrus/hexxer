@@ -6,6 +6,7 @@
 #define HEXXER_HEXAGON_H
 
 #include <stdbool.h>
+#include <sys/types.h>
 
 #define TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED 0x1000000000
 #define TOTAL_SEGMENTS_WITH_LEFT_RED_LOCKED 18
@@ -30,7 +31,7 @@ struct hexagon{
 };
 
 #define HEXAGON struct hexagon
-#define HEXAGON_AS_INT unsigned long
+#define HEXAGON_AS_INT u_int64_t
 
 void printHexagon(HEXAGON * hexagon);
 void longToHexagon(HEXAGON_AS_INT number, HEXAGON * hexagon, bool lockLeftRed);

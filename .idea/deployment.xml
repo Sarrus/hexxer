@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" remoteFilesAllowedToDisappearOnAutoupload="false">
+    <serverData>
+      <paths name="host1 (6f6df6e8-dc30-4eae-aeef-b009d7a2ada6)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/tmp/tmp.aliso09TXR" local="$PROJECT_DIR$" />
+          </mappings>
+          <excludedPaths>
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-debug-pi1" />
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-debug-host1" />
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-release" />
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-release-pi1" />
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-release-host1" />
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-debug" />
+          </excludedPaths>
+        </serverdata>
+      </paths>
+      <paths name="pi1 (630745ba-e397-4b67-b204-ed8a713b7022)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/tmp/tmp.0pBoMMtv4m" local="$PROJECT_DIR$" />
+          </mappings>
+          <excludedPaths>
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-debug-pi1" />
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-debug-host1" />
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-release" />
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-release-pi1" />
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-release-host1" />
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-debug" />
+          </excludedPaths>
+        </serverdata>
+      </paths>
+      <paths name="pi1 (ef5bd606-08fe-403d-8a0a-58a52f19e05b)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/tmp/tmp.orRCHI8SAz" local="$PROJECT_DIR$" />
+          </mappings>
+          <excludedPaths>
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-debug-pi1" />
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-release" />
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-release-pi1" />
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-debug" />
+          </excludedPaths>
+        </serverdata>
+      </paths>
+    </serverData>
+  </component>
+</project>

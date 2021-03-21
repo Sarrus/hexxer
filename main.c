@@ -19,7 +19,7 @@
 
 bool printHexagons = false;
 bool printVisualMatches = false;
-unsigned long parallelJobs = 0;
+u_int64_t parallelJobs = 0;
 bool saveHTMLReport = false;
 bool stopOnFirstSolution = false;
 bool saveAllSolutionIDs = false;
@@ -66,11 +66,11 @@ void solveInSerial()
         if(validateSolution(i))
         {
             solutionsFound++;
-            fprintf(stderr, "Solution found at hexagon no. %lu, ", i);
+            fprintf(stderr, "Solution found at hexagon no. %llu, ", i);
 
             if(saveAllSolutionIDs)
             {
-                snprintf(solutionString, ID_PRINT_MAX_SIZE, "%lu\r\n", i);
+                snprintf(solutionString, ID_PRINT_MAX_SIZE, "%llu\r\n", i);
                 write(allSolutionsLocationHandle, solutionString, strlen(solutionString));
             }
 
@@ -82,7 +82,7 @@ void solveInSerial()
             }
             else if((matchedSolution = checkSolutionForVisualMatches(i)))
             {
-                fprintf(stderr, "visually matches solution no. %lu ", matchedSolution);
+                fprintf(stderr, "visually matches solution no. %llu ", matchedSolution);
             }
             else
             {
@@ -90,13 +90,13 @@ void solveInSerial()
                 storeSolution(i);
                 if(saveUniqueSolutionIDs)
                 {
-                    snprintf(solutionString, ID_PRINT_MAX_SIZE, "%lu\r\n", i);
+                    snprintf(solutionString, ID_PRINT_MAX_SIZE, "%llu\r\n", i);
                     write(uniqueSolutionsLocationHandle, solutionString, strlen(solutionString));
                 }
             }
 
             fprintf(stderr, "%f%% of all hexagons tried, ", 100 * (float)i / (float)TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED);
-            fprintf(stderr, "%lu solutions found so far, %lu visually unique.\r\n", solutionsFound, solutionsStored);
+            fprintf(stderr, "%llu solutions found so far, %llu visually unique.\r\n", solutionsFound, solutionsStored);
             if(printVisualMatches && matchedSolution)
             {
                 fprintf(stderr, "Match:\r\n");
@@ -120,7 +120,7 @@ void solveInSerial()
 HEXAGON_AS_INT printParallelProgress()
 {
     HEXAGON_AS_INT hexagonsProcessed = solverHexagonAllocationQueue - (PARALLEL_SOLVER_ALLOCATION_BLOCK * parallelJobs);
-    for(unsigned long i = 0; i < parallelJobs; i++)
+    for(u_int64_t i = 0; i < parallelJobs; i++)
     {
         hexagonsProcessed += threadConfigs[i].currentHexagon - threadConfigs[i].firstHexagon;
     }
@@ -131,7 +131,7 @@ HEXAGON_AS_INT printParallelProgress()
     }
 
     fprintf(stderr, 
-            "%lu hexagons processed so far, %f%% of total.",
+            "%llu hexagons processed so far, %f%% of total.",
             hexagonsProcessed,
             100 * (float)hexagonsProcessed / (float)TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED
     );
@@ -201,11 +201,11 @@ void * solverThread(void * config)
                     //fprintf(stderr, "\r\n");
                     lastPrintWasProgressLine = false;
                 }
-                fprintf(stderr, "Solution found at hexagon no. %lu, ", solverConfig->currentHexagon);
+                fprintf(stderr, "Solution found at hexagon no. %llu, ", solverConfig->currentHexagon);
 
                 if(saveAllSolutionIDs)
                 {
-                    snprintf(solutionString, ID_PRINT_MAX_SIZE, "%lu\r\n", solverConfig->currentHexagon);
+                    snprintf(solutionString, ID_PRINT_MAX_SIZE, "%llu\r\n", solverConfig->currentHexagon);
                     write(allSolutionsLocationHandle, solutionString, strlen(solutionString));
                 }
 
@@ -219,7 +219,7 @@ void * solverThread(void * config)
                 }
                 else if((matchedSolution = checkSolutionForVisualMatches(solverConfig->currentHexagon)))
                 {
-                    fprintf(stderr, "visually matches solution no. %lu ", matchedSolution);
+                    fprintf(stderr, "visually matches solution no. %llu ", matchedSolution);
                 }
                 else
                 {
@@ -227,14 +227,14 @@ void * solverThread(void * config)
                     storeSolution(solverConfig->currentHexagon);
                     if(saveUniqueSolutionIDs)
                     {
-                        snprintf(solutionString, ID_PRINT_MAX_SIZE, "%lu\r\n", solverConfig->currentHexagon);
+                        snprintf(solutionString, ID_PRINT_MAX_SIZE, "%llu\r\n", solverConfig->currentHexagon);
                         write(uniqueSolutionsLocationHandle, solutionString, strlen(solutionString));
                     }
                 }
 
                 pthread_mutex_unlock(&solutionValidationMutex);
 
-                fprintf(stderr, "%lu solutions found so far, %lu visually unique.\r\n", solutionsFound, solutionsStored);
+                fprintf(stderr, "%llu solutions found so far, %llu visually unique.\r\n", solutionsFound, solutionsStored);
 
                 if(printVisualMatches && matchedSolution)
                 {
@@ -288,7 +288,7 @@ void solveInParallel()
 
     nice(5);
 
-    for(unsigned long i = 0; i < parallelJobs; i++)
+    for(u_int64_t i = 0; i < parallelJobs; i++)
     {
 //        threadConfigs[i].currentHexagon = threadConfigs[i].firstHexagon = hexagonAllocation;
 //        hexagonAllocation += hexagonsPerSolver;
@@ -317,7 +317,7 @@ void solveInParallel()
         exit(EXIT_FAILURE);
     }
 
-    for(unsigned long i = 0; i < parallelJobs; i++)
+    for(u_int64_t i = 0; i < parallelJobs; i++)
     {
         pthread_join(solverThreadIDs[i], NULL);
     }
@@ -417,7 +417,7 @@ int main(int argc, char ** argv)
 
             case 't':
                 fprintf(stderr, "Solution %s is ", optarg);
-                if(validateSolution(strtoul(optarg, NULL, 10)))
+                if(validateSolution(strtoull(optarg, NULL, 10)))
                 {
                     fprintf(stderr, "\x1B[32mVALID\x1B[0m.\r\n");
                     return EXIT_SUCCESS;
