@@ -85,7 +85,7 @@ To get the full set of run options:
     -u  Write the ID of each visually unique solution as it is found to the specified location. ('-' to write to stdout.)
 
 Depending on your hardware hexxer will take anywhere between
-20 minutes (8 core Intel processor) to 90 minutes (Raspberry Pi
+8 minutes (EC2 c5.metal instance) to 75 minutes (Raspberry Pi
 4 model B).
 
 ## Known Issues
