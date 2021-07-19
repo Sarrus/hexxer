@@ -3,7 +3,7 @@
 A brute force solver for New Scientist puzzle number 90, 
 'Colourful Beehives'.
 
-You can see the original puzzle [here](https://www.newscientist.com/article/mg24833135-800-puzzle-89-get-your-felt-tip-pens-out-for-the-colourful-beehive/): 
+You can see the original puzzle [here](https://www.newscientist.com/article/mg24833135-800-puzzle-89-get-your-felt-tip-pens-out-for-the-colourful-beehive/). 
 
 
 My computer is better at puzzles than I am so I had it solve this
