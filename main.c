@@ -10,6 +10,9 @@
 #include "hexagon.h"
 #include "memory.h"
 #include "report.h"
+#ifdef WITH_CUDA
+    #include "gpu.h"
+#endif
 
 #define FP int
 
@@ -24,6 +27,9 @@ bool saveHTMLReport = false;
 bool stopOnFirstSolution = false;
 bool saveAllSolutionIDs = false;
 bool saveUniqueSolutionIDs = false;
+#ifdef WITH_CUDA
+bool solveUsingCUDA = false;
+#endif
 
 FP allSolutionsLocationHandle;
 FP uniqueSolutionsLocationHandle;
@@ -342,7 +348,7 @@ int main(int argc, char ** argv)
     int option;
     HEXAGON displayHexagon;
 
-    while((option = getopt(argc, argv, "d:hj:mo:pr:st:u:")) != -1)
+    while((option = getopt(argc, argv, "d:ghj:mo:pr:st:u:")) != -1)
     {
         switch(option)
         {
@@ -351,9 +357,22 @@ int main(int argc, char ** argv)
                 printHexagon(&displayHexagon);
                 return EXIT_SUCCESS;
 
+            case 'g':
+#ifdef WITH_CUDA
+                solveUsingCUDA = true;
+                parallelJobs = 0;
+                break;
+#else
+                fprintf(stderr, "Please compile with CUDA functionality to use GPU solving.\r\n");
+                return EXIT_FAILURE;
+#endif
+
             case 'h':
                 fprintf(stderr, "Usage: hexxer [options]\r\n");
                 fprintf(stderr, "  -d  Display the hexagon specified by its ID then exit.\r\n");
+#ifdef WITH_CUDA
+                fprintf(stderr, "  -g  Solve using the GPU.\r\n");
+#endif
                 fprintf(stderr, "  -h  Display this help.\r\n");
                 fprintf(stderr, "  -j  Number of parallel jobs to run. (Runs in serial mode if unspecified.)\r\n");
                 fprintf(stderr, "  -m  Render and print visual matches.\r\n");
@@ -379,6 +398,9 @@ int main(int argc, char ** argv)
                     fprintf(stderr, "Parallel jobs limited to %i.\r\n", MAX_PARALLEL_JOBS);
                     return EXIT_FAILURE;
                 }
+#ifdef WITH_CUDA
+                solveUsingCUDA = false;
+#endif
                 break;
 
             case 'm':
@@ -453,6 +475,12 @@ int main(int argc, char ** argv)
     {
         solveInParallel();
     }
+#ifdef WITH_CUDA
+    else if(solveUsingCUDA)
+    {
+        solveWithCUDA();
+    }
+#endif
     else
     {
         solveInSerial();
