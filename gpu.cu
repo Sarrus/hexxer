@@ -4,6 +4,8 @@
 #define TOTAL_SEGMENTS 19
 #define TOTAL_SEGMENTS_WITH_LEFT_RED_LOCKED 18
 #define LOCKED_RED_LOCATION 18
+#define TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED 0x1000000000
+#define THREAD_COUNT 80 * 256
 
 enum colours{
     RED,
@@ -37,6 +39,8 @@ const struct {
         {4, {13, 14, 16, 18}}, // 17
         {3, {14, 15, 17}}
 };
+
+__device__ HEXAGON_AS_INT threadFoundSolutions[THREAD_COUNT];
 
 __device__
 bool validateSolution(HEXAGON_AS_INT solution)
@@ -183,23 +187,50 @@ bool validateSolution(HEXAGON_AS_INT solution)
 }
 
 __global__
-void solver(bool * result)
+void prepare()
 {
-    *result = validateSolution(152953033);
+    for(int i = 0; i < THREAD_COUNT; i++)
+    {
+        threadFoundSolutions[i] = 0;
+    }
+}
+
+__global__
+void solver(HEXAGON_AS_INT * aValidSolution)
+{
+    HEXAGON_AS_INT start = blockIdx.x * blockDim.x + threadIdx.x;
+    HEXAGON_AS_INT step = blockDim.x * gridDim.x;
+
+    for(HEXAGON_AS_INT i = start; i < TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED; i += step)
+    {
+        if(validateSolution(i))
+        {
+            threadFoundSolutions[start] += 1;
+            *aValidSolution = i;
+        }
+    }
+}
+
+__global__
+void retrieveResult(HEXAGON_AS_INT * solutionCount)
+{
+    *solutionCount = 0;
+    for(int i = 0; i < THREAD_COUNT; i++)
+    {
+        *solutionCount += threadFoundSolutions[i];
+    }
 }
 
 extern "C" void solveWithCUDA()
 {
-    bool * result;
-    cudaMallocManaged(&result, sizeof(bool));
-    solver<<<1, 1>>>(result);
+    HEXAGON_AS_INT * solutionCount;
+    HEXAGON_AS_INT * aValidSolution;
+    cudaMallocManaged(&solutionCount, sizeof(HEXAGON_AS_INT));
+    cudaMallocManaged(&aValidSolution, sizeof(HEXAGON_AS_INT));
+    prepare<<<1, 1>>>();
+    solver<<<80, 256>>>(aValidSolution);
+    retrieveResult<<<1, 1>>>(solutionCount);
     cudaDeviceSynchronize();
-    if(*result)
-    {
-        std::cerr << "Valid Solution" << std::endl;
-    }
-    else
-    {
-        std::cerr << "Invalid Solution" << std::endl;
-    }
+    std::cerr << "Solutions found: " << *solutionCount << std::endl;
+    std::cerr << "A valid solution: " << *aValidSolution << std::endl;
 }
