@@ -1,4 +1,5 @@
 #include <iostream>
+#include <unistd.h>
 
 #define HEXAGON_AS_INT u_int64_t
 #define TOTAL_SEGMENTS 19
@@ -6,6 +7,7 @@
 #define LOCKED_RED_LOCATION 18
 #define TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED 0x1000000000
 #define THREAD_COUNT 80 * 256
+#define FOUND_SOLUTION_POOL_SIZE 10000
 
 enum colours{
     RED,
@@ -41,6 +43,9 @@ const struct {
 };
 
 __device__ HEXAGON_AS_INT threadFoundSolutions[THREAD_COUNT];
+__device__ HEXAGON_AS_INT threadTriedSolutions[THREAD_COUNT];
+__device__ HEXAGON_AS_INT threadFoundSolutionPool[THREAD_COUNT][FOUND_SOLUTION_POOL_SIZE];
+__device__ HEXAGON_AS_INT threadFoundSolutionsLastPulledTo[THREAD_COUNT];
 
 __device__
 bool validateSolution(HEXAGON_AS_INT solution)
@@ -192,6 +197,8 @@ void prepare()
     for(int i = 0; i < THREAD_COUNT; i++)
     {
         threadFoundSolutions[i] = 0;
+        threadTriedSolutions[i] = 0;
+        threadFoundSolutionsLastPulledTo[i] = 0;
     }
 }
 
@@ -205,9 +212,12 @@ void solver(HEXAGON_AS_INT * aValidSolution)
     {
         if(validateSolution(i))
         {
-            threadFoundSolutions[start] += 1;
+            //printf("%lu\r\n", i);
+            threadFoundSolutionPool[start][threadFoundSolutions[start]] = i;
+            threadFoundSolutions[start]++;
             *aValidSolution = i;
         }
+        threadTriedSolutions[start]++;
     }
 }
 
@@ -221,15 +231,60 @@ void retrieveResult(HEXAGON_AS_INT * solutionCount)
     }
 }
 
+__global__
+void manageProgress(HEXAGON_AS_INT * triedSolutions, HEXAGON_AS_INT * foundSolutions, HEXAGON_AS_INT * solutionCount)
+{
+    *triedSolutions = 0;
+    for(HEXAGON_AS_INT i = 0; i < THREAD_COUNT; i++)
+    {
+        *triedSolutions += threadTriedSolutions[i];
+        while(threadFoundSolutionsLastPulledTo[i] < threadFoundSolutions[i])
+        {
+            foundSolutions[*solutionCount] = threadFoundSolutionPool[i][threadFoundSolutionsLastPulledTo[i]];
+            (*solutionCount)++;
+            threadFoundSolutionsLastPulledTo[i]++;
+        }
+    }
+}
+
 extern "C" void solveWithCUDA()
 {
     HEXAGON_AS_INT * solutionCount;
     HEXAGON_AS_INT * aValidSolution;
+    HEXAGON_AS_INT * triedSolutions;
+    HEXAGON_AS_INT * foundSolutions;
     cudaMallocManaged(&solutionCount, sizeof(HEXAGON_AS_INT));
     cudaMallocManaged(&aValidSolution, sizeof(HEXAGON_AS_INT));
-    prepare<<<1, 1>>>();
-    solver<<<80, 256>>>(aValidSolution);
-    retrieveResult<<<1, 1>>>(solutionCount);
+    cudaMallocManaged(&triedSolutions, sizeof(HEXAGON_AS_INT));
+    cudaMallocManaged(&foundSolutions, sizeof(HEXAGON_AS_INT) * FOUND_SOLUTION_POOL_SIZE);
+
+    cudaStream_t mainStream, verificationStream;
+    cudaStreamCreate(&mainStream);
+    cudaStreamCreate(&verificationStream);
+
+    prepare<<<1, 1, 0, mainStream>>>();
+    solver<<<80, 256, 0, mainStream>>>(aValidSolution);
+    //retrieveResult<<<1, 1, 0, mainStream>>>(solutionCount);
+
+    HEXAGON_AS_INT solutionsPrinted = 0;
+
+    while(cudaStreamQuery(mainStream) != cudaSuccess)
+    {
+        manageProgress<<<1, 1, 0, verificationStream>>>(triedSolutions, foundSolutions, solutionCount);
+        cudaStreamSynchronize(verificationStream);
+        fprintf(stderr,
+                "%lu hexagons processed so far, %f%% of total.\r\n",
+                *triedSolutions,
+                100 * (float)*triedSolutions / (float)TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED
+        );
+        while(solutionsPrinted < *solutionCount)
+        {
+            fprintf(stderr, "New solution: %lu\r\n", foundSolutions[solutionsPrinted]);
+            solutionsPrinted++;
+        }
+        sleep(1);
+    }
+
     cudaDeviceSynchronize();
     std::cerr << "Solutions found: " << *solutionCount << std::endl;
     std::cerr << "A valid solution: " << *aValidSolution << std::endl;
