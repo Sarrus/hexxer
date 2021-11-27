@@ -9,6 +9,9 @@
 #define THREAD_COUNT 80 * 256
 #define FOUND_SOLUTION_POOL_SIZE 10000
 
+#include "memory.cuh"
+#include "hexagon.cuh"
+
 enum colours{
     RED,
     YELLOW,
@@ -266,26 +269,63 @@ extern "C" void solveWithCUDA()
     solver<<<80, 256, 0, mainStream>>>(aValidSolution);
     //retrieveResult<<<1, 1, 0, mainStream>>>(solutionCount);
 
-    HEXAGON_AS_INT solutionsPrinted = 0;
+    HEXAGON_AS_INT solutionsPushed = 0;
+    HEXAGON_AS_INT uniqueSolutions = 0;
 
-    while(cudaStreamQuery(mainStream) != cudaSuccess)
+    bool looping = true;
+    bool lastPrintWasProgressLine = false;
+
+    while(looping)
     {
+        if(cudaStreamQuery(mainStream) == cudaSuccess)
+        {
+            looping = false;
+        }
         manageProgress<<<1, 1, 0, verificationStream>>>(triedSolutions, foundSolutions, solutionCount);
         cudaStreamSynchronize(verificationStream);
+//        fprintf(stderr,
+//                "%lu hexagons processed so far, %f%% of total.\r\n",
+//                *triedSolutions,
+//                100 * (float)*triedSolutions / (float)TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED
+//        );
+        while(solutionsPushed < *solutionCount)
+        {
+            if(lastPrintWasProgressLine)
+            {
+                fprintf(stderr, "%c[2K\r", 27);
+                lastPrintWasProgressLine = false;
+            }
+            fprintf(stderr, "Solution found at hexagon no. %lu, ", foundSolutions[solutionsPushed]);
+            HEXAGON_AS_INT matchedSolution = checkSolutionForVisualMatches(foundSolutions[solutionsPushed]);
+            if(matchedSolution)
+            {
+                fprintf(stderr, "visually matches solution no. %lu ", matchedSolution);
+            }
+            else
+            {
+                uniqueSolutions++;
+                fprintf(stderr, "no visual matches found. ");
+            }
+            fprintf(stderr, "%lu solutions found so far, %lu visually unique.\r\n", solutionsPushed, uniqueSolutions);
+
+            storeSolution(foundSolutions[solutionsPushed]);
+            solutionsPushed++;
+        }
+
+        if(lastPrintWasProgressLine)
+        {
+            fprintf(stderr, "%c[2K\r", 27);
+        }
         fprintf(stderr,
-                "%lu hexagons processed so far, %f%% of total.\r\n",
+                "%lu hexagons processed so far, %f%% of total.",
                 *triedSolutions,
                 100 * (float)*triedSolutions / (float)TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED
         );
-        while(solutionsPrinted < *solutionCount)
-        {
-            fprintf(stderr, "New solution: %lu\r\n", foundSolutions[solutionsPrinted]);
-            solutionsPrinted++;
-        }
+        lastPrintWasProgressLine = true;
+
         sleep(1);
     }
 
     cudaDeviceSynchronize();
-    std::cerr << "Solutions found: " << *solutionCount << std::endl;
-    std::cerr << "A valid solution: " << *aValidSolution << std::endl;
+    fprintf(stderr, "Tried all possible solutions.\r\n");
 }

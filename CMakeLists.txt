@@ -9,7 +9,7 @@ add_executable(hexxer main.c hexagon.c hexagon.h memory.c memory.h report.c repo
 if(DEFINED WITH_CUDA)
     enable_language(CUDA)
     set(CMAKE_CUDA_STANDARD 14)
-    target_sources(hexxer PRIVATE gpu.cu gpu.h)
+    target_sources(hexxer PRIVATE gpu.cu gpu.h memory.cuh)
     set_target_properties(hexxer PROPERTIES
             CUDA_SEPARABLE_COMPILATION ON)
     add_compile_definitions(WITH_CUDA)
