@@ -1,23 +1,11 @@
 #include <iostream>
 #include <unistd.h>
-
-#define HEXAGON_AS_INT u_int64_t
-#define TOTAL_SEGMENTS 19
-#define TOTAL_SEGMENTS_WITH_LEFT_RED_LOCKED 18
-#define LOCKED_RED_LOCATION 18
-#define TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED 0x1000000000
-#define THREAD_COUNT 80 * 256
-#define FOUND_SOLUTION_POOL_SIZE 10000
-
 #include "memory.cuh"
 #include "hexagon.cuh"
+#include "configuration.cuh"
 
-enum colours{
-    RED,
-    YELLOW,
-    GREEN,
-    BLUE
-};
+#define THREAD_COUNT 80 * 256
+#define FOUND_SOLUTION_POOL_SIZE 10000
 
 __device__
 const struct {
@@ -206,7 +194,7 @@ void prepare()
 }
 
 __global__
-void solver(HEXAGON_AS_INT * aValidSolution)
+void solver(HEXAGON_AS_INT * aValidSolution, const bool * kernelStop)
 {
     HEXAGON_AS_INT start = blockIdx.x * blockDim.x + threadIdx.x;
     HEXAGON_AS_INT step = blockDim.x * gridDim.x;
@@ -221,6 +209,11 @@ void solver(HEXAGON_AS_INT * aValidSolution)
             *aValidSolution = i;
         }
         threadTriedSolutions[start]++;
+
+        if(*kernelStop)
+        {
+            return;
+        }
     }
 }
 
@@ -256,17 +249,21 @@ extern "C" void solveWithCUDA()
     HEXAGON_AS_INT * aValidSolution;
     HEXAGON_AS_INT * triedSolutions;
     HEXAGON_AS_INT * foundSolutions;
+    bool * kernelStop;
     cudaMallocManaged(&solutionCount, sizeof(HEXAGON_AS_INT));
     cudaMallocManaged(&aValidSolution, sizeof(HEXAGON_AS_INT));
     cudaMallocManaged(&triedSolutions, sizeof(HEXAGON_AS_INT));
     cudaMallocManaged(&foundSolutions, sizeof(HEXAGON_AS_INT) * FOUND_SOLUTION_POOL_SIZE);
+    cudaMallocManaged(&kernelStop, sizeof(bool));
 
     cudaStream_t mainStream, verificationStream;
     cudaStreamCreate(&mainStream);
     cudaStreamCreate(&verificationStream);
 
+    *kernelStop = false;
+
     prepare<<<1, 1, 0, mainStream>>>();
-    solver<<<80, 256, 0, mainStream>>>(aValidSolution);
+    solver<<<80, 256, 0, mainStream>>>(aValidSolution, kernelStop);
     //retrieveResult<<<1, 1, 0, mainStream>>>(solutionCount);
 
     HEXAGON_AS_INT solutionsPushed = 0;
@@ -283,11 +280,6 @@ extern "C" void solveWithCUDA()
         }
         manageProgress<<<1, 1, 0, verificationStream>>>(triedSolutions, foundSolutions, solutionCount);
         cudaStreamSynchronize(verificationStream);
-//        fprintf(stderr,
-//                "%lu hexagons processed so far, %f%% of total.\r\n",
-//                *triedSolutions,
-//                100 * (float)*triedSolutions / (float)TOTAL_HEXAGONS_WITH_LEFT_RED_LOCKED
-//        );
         while(solutionsPushed < *solutionCount)
         {
             if(lastPrintWasProgressLine)
@@ -297,7 +289,14 @@ extern "C" void solveWithCUDA()
             }
             fprintf(stderr, "Solution found at hexagon no. %lu, ", foundSolutions[solutionsPushed]);
             HEXAGON_AS_INT matchedSolution = checkSolutionForVisualMatches(foundSolutions[solutionsPushed]);
-            if(matchedSolution)
+            if(stopOnFirstSolution)
+            {
+                fprintf(stderr, "stopping.\r\n");
+                *kernelStop = true;
+                looping = false;
+                break;
+            }
+            else if(matchedSolution)
             {
                 fprintf(stderr, "visually matches solution no. %lu ", matchedSolution);
             }
@@ -327,5 +326,12 @@ extern "C" void solveWithCUDA()
     }
 
     cudaDeviceSynchronize();
-    fprintf(stderr, "Tried all possible solutions.\r\n");
+    if(stopOnFirstSolution)
+    {
+        fprintf(stderr, "\r\nStopped.\r\n");
+    }
+    else
+    {
+        fprintf(stderr, "\r\nTried all possible solutions.\r\n");
+    }
 }
