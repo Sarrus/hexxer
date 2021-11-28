@@ -256,6 +256,8 @@ extern "C" void solveWithCUDA()
     cudaMallocManaged(&foundSolutions, sizeof(HEXAGON_AS_INT) * FOUND_SOLUTION_POOL_SIZE);
     cudaMallocManaged(&kernelStop, sizeof(bool));
 
+    char solutionString[ID_PRINT_MAX_SIZE];
+
     cudaStream_t mainStream, verificationStream;
     cudaStreamCreate(&mainStream);
     cudaStreamCreate(&verificationStream);
@@ -288,6 +290,13 @@ extern "C" void solveWithCUDA()
                 lastPrintWasProgressLine = false;
             }
             fprintf(stderr, "Solution found at hexagon no. %lu, ", foundSolutions[solutionsPushed]);
+
+            if(saveAllSolutionIDs)
+            {
+                snprintf(solutionString, ID_PRINT_MAX_SIZE, "%lu\r\n", foundSolutions[solutionsPushed]);
+                write(allSolutionsLocationHandle, solutionString, strlen(solutionString));
+            }
+
             HEXAGON_AS_INT matchedSolution = checkSolutionForVisualMatches(foundSolutions[solutionsPushed]);
             if(stopOnFirstSolution)
             {
@@ -304,6 +313,11 @@ extern "C" void solveWithCUDA()
             {
                 uniqueSolutions++;
                 fprintf(stderr, "no visual matches found. ");
+                if(saveUniqueSolutionIDs)
+                {
+                    snprintf(solutionString, ID_PRINT_MAX_SIZE, "%lu\r\n", foundSolutions[solutionsPushed]);
+                    write(uniqueSolutionsLocationHandle, solutionString, strlen(solutionString));
+                }
             }
             fprintf(stderr, "%lu solutions found so far, %lu visually unique.\r\n", solutionsPushed, uniqueSolutions);
 
