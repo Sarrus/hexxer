@@ -74,6 +74,7 @@ To get the full set of run options:
     $ ./hexxer -h
     Usage: hexxer [options]
     -d  Display the hexagon specified by its ID then exit.
+    -g  Solve using the GPU.
     -h  Display this help.
     -j  Number of parallel jobs to run. (Runs in serial mode if unspecified.)
     -m  Render and print visual matches.
@@ -87,6 +88,32 @@ To get the full set of run options:
 Depending on your hardware hexxer will take anywhere between
 8 minutes (EC2 c5.metal instance) to 75 minutes (Raspberry Pi
 4 model B).
+
+## GPU Solving
+
+By far the best performance can be obtained by solving using a GPU. 
+A high-end Nvidia graphics card can find all valid solutions in 
+less than 20 seconds. 
+
+Currently, only CUDA capable GPUs are supported. To solve using a GPU
+you will need to install the correct driver for your GPU and build 
+using the CUDA Toolkit. Instructions for installing the CUDA Toolkit
+can be found [here](https://docs.nvidia.com/cuda/cuda-quick-start-guide/index.html).
+
+With the CUDA toolkit installed, prepare the build environment with 
+CUDA support enabled:
+
+    cmake ./ -DWITH_CUDA=true
+
+Run the build as normal:
+
+    cmake --build ./
+
+Run hexxer with the -g option:
+
+    ./hexxer -g
+
+All other options work as normal. 
 
 ## Known Issues
 
