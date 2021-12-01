@@ -249,6 +249,7 @@ extern "C" void solveWithCUDA()
     HEXAGON_AS_INT * aValidSolution;
     HEXAGON_AS_INT * triedSolutions;
     HEXAGON_AS_INT * foundSolutions;
+    HEXAGON renderedHexagon;
     bool * kernelStop;
     cudaMallocManaged(&solutionCount, sizeof(HEXAGON_AS_INT));
     cudaMallocManaged(&aValidSolution, sizeof(HEXAGON_AS_INT));
@@ -320,6 +321,21 @@ extern "C" void solveWithCUDA()
                 }
             }
             fprintf(stderr, "%lu solutions found so far, %lu visually unique.\r\n", solutionsPushed, uniqueSolutions);
+
+            if(printVisualMatches && matchedSolution)
+            {
+                fprintf(stderr, "Match:\r\n");
+                longToHexagon(matchedSolution, &renderedHexagon, false);
+                printHexagon(&renderedHexagon);
+                fprintf(stderr, "New Solution:\r\n");
+                longToHexagon(foundSolutions[solutionsPushed], &renderedHexagon, false);
+                printHexagon(&renderedHexagon);
+            }
+            else if(printHexagons)
+            {
+                longToHexagon(foundSolutions[solutionsPushed], &renderedHexagon, false);
+                printHexagon(&renderedHexagon);
+            }
 
             storeSolution(foundSolutions[solutionsPushed]);
             solutionsPushed++;
