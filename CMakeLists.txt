@@ -11,6 +11,7 @@ if(DEFINED WITH_CUDA)
     set(CMAKE_CUDA_STANDARD 14)
     target_sources(hexxer PRIVATE gpu.cu gpu.h memory.cuh)
     set_target_properties(hexxer PROPERTIES
-            CUDA_SEPARABLE_COMPILATION ON)
+            CUDA_SEPARABLE_COMPILATION ON
+            CUDA_ARCHITECTURES OFF)
     add_compile_definitions(WITH_CUDA)
 endif()
