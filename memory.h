@@ -7,7 +7,7 @@
 
 #include "hexagon.h"
 
-HEXAGON_AS_INT solutionsStored;
+extern HEXAGON_AS_INT solutionsStored;
 
 void memoryInit();
 void storeSolution(HEXAGON_AS_INT solution);

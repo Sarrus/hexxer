@@ -12,6 +12,7 @@
 HEXAGON_AS_INT * solutions = NULL;
 HEXAGON_AS_INT solutionPageCount = 0;
 //pthread_mutex_t solutionsMutex;
+HEXAGON_AS_INT solutionsStored;
 
 void memoryInit()
 {
